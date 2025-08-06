@@ -8490,4 +8490,77 @@ run(function()
 		List = WinEffectName
 	})
 end)
-	
+
+run(function()
+    local KillAuraV2 = vape.Categories.Blatant:CreateModule({
+        Name = "KillAura V2",
+        Tooltip = "Customizable CPS kill aura with spoof validation",
+        ExtraText = function() return "V2" end,
+        Function = function(enabled)
+            if not enabled then return end
+
+            local AttackRemote = bedwars.Client:Get(remotes.AttackEntity).instance
+            local lastSwingTime = 0
+
+            bedwars.SwordController.isClickingTooFast = function(self)
+                self.lastSwing = os.clock()
+                return false
+            end
+
+            KillAuraV2:Clean(runService.Heartbeat:Connect(function()
+                if not entitylib.isAlive then return end
+                local sword = store.hand
+                if not sword or sword.toolType ~= "sword" or not sword.tool then return end
+
+                local cpsDelay = 1 / (KillAuraCPS.Value > 0 and KillAuraCPS.Value or 1)
+                local now = tick()
+                if now - lastSwingTime < cpsDelay then return end
+                lastSwingTime = now
+
+                local targets = entitylib.AllPosition({
+                    Range = 18,
+                    Sort = sortmethods.Damage,
+                    Part = "RootPart",
+                    Wallcheck = true,
+                    Players = true,
+                    NPCs = false,
+                    Limit = 10
+                })
+
+                for _, v in targets do
+                    local root = v.Character and v.Character.PrimaryPart
+                    if not root then continue end
+
+                    local selfPos = entitylib.character.RootPart.Position
+                    local targetPos = root.Position
+                    local dir = CFrame.lookAt(selfPos, targetPos).LookVector
+                    local spoofPos = selfPos + dir * math.max((targetPos - selfPos).Magnitude - 14.399, 0)
+
+                    AttackRemote:FireServer({
+                        weapon = sword.tool,
+                        chargedAttack = { chargeRatio = 0 },
+                        lastSwingServerTimeDelta = 0,
+                        entityInstance = v.Character,
+                        validate = {
+                            raycast = {
+                                cameraPosition = { value = spoofPos },
+                                cursorDirection = { value = dir }
+                            },
+                            targetPosition = { value = targetPos },
+                            selfPosition = { value = spoofPos }
+                        }
+                    })
+                end
+            end))
+        end
+    })
+
+    KillAuraCPS = KillAuraV2:CreateSlider({
+        Name = "CPS",
+        Min = 1,
+        Max = 1000000000,
+        Default = 100,
+        Suffix = "cps",
+        Tooltip = "Set your preferred click rate"
+    })
+end)																																																															
