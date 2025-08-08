@@ -8564,3 +8564,98 @@ run(function()
         Tooltip = "Set your preferred click rate"
     })
 end)																																																															
+run(function()
+    local AttachPlayer
+    local DistanceSlider
+    local SpeedSlider
+
+    AttachPlayer = vape.Categories.Utility:CreateModule({
+        Name = "Attach Player",
+        Function = function(enabled)
+            if enabled then
+                AttachPlayer:Clean(game:GetService("RunService").RenderStepped:Connect(function()
+                    local lplr = game.Players.LocalPlayer
+                    local char = lplr.Character
+                    local root = char and char:FindFirstChild("HumanoidRootPart")
+                    if not char or not root then return end
+
+                    local closest, shortest = nil, math.huge
+                    for _, player in pairs(game.Players:GetPlayers()) do
+                        if player ~= lplr and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                            local dist = (root.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                            if dist < shortest and dist <= DistanceSlider.Value then
+                                closest = player
+                                shortest = dist
+                            end
+                        end
+                    end
+
+                    if closest and closest.Character then
+                        local targetRoot = closest.Character:FindFirstChild("HumanoidRootPart")
+                        if targetRoot then
+                            local direction = (targetRoot.Position - root.Position).Unit
+                            local step = direction * SpeedSlider.Value
+                            root.CFrame = CFrame.new(root.Position + step)
+                        end
+                    end
+                end))
+            end
+        end
+    })
+
+    DistanceSlider = AttachPlayer:CreateSlider({
+        Name = "Distance",
+        Min = 1,
+        Max = 99,
+        Default = 30,
+        Suffix = function(val)
+            return val == 1 and "stud" or "studs"
+        end
+    })
+
+    SpeedSlider = AttachPlayer:CreateSlider({
+        Name = "Speed",
+        Min = 1,
+        Max = 20,
+        Default = 4,
+        Suffix = function(val)
+            return val == 1 and "stud/frame" or "studs/frame"
+        end
+    })
+end)
+run(function()
+    local HighJumpV2
+    local YSpeed
+    local runService = game:GetService("RunService")
+    local player = game.Players.LocalPlayer
+
+    HighJumpV2 = vape.Categories.Blatant:CreateModule({
+        Name = "HighJumpV2",
+        Function = function(callback)
+            if callback then
+                workspace.Gravity = 0
+                HighJumpV2:Clean(runService.RenderStepped:Connect(function()
+                    local char = player.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        local root = char.HumanoidRootPart
+                        root.Velocity = Vector3.new(
+                            root.Velocity.X,
+                            YSpeed.Value,
+                            root.Velocity.Z
+                        )
+                    end
+                end))
+            else
+                workspace.Gravity = 196.2
+            end
+        end,
+        Tooltip = "Applies vertical velocity for smooth flight (Gravity = 0)"
+    })
+
+    YSpeed = HighJumpV2:CreateSlider({
+        Name = "Vertical Speed",
+        Min = 50,
+        Max = 600,
+        Default = 180
+    })
+end)
